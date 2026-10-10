@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reino de la Leyenda</title>
+<style>
+* { margin:0; padding:0; font-family:sans-serif; box-sizing:border-box; }
+body { background:#1a1a2e; color:#f0e6d2; min-height:100vh; padding:15px; padding-bottom:80px; }
+.oculto { display:none !important; }
+
+/* LOGIN */
+.login-box { max-width:400px; margin:60px auto; }
+h1 { color:#FFD700; text-align:center; margin-bottom:30px; font-size:24px; }
+.tarjeta { background:rgba(44,62,80,0.8); padding:25px; border-radius:12px; border:2px solid #FFD700; }
+input {
+  width:100%; padding:14px; margin:8px 0; border:2px solid #34495e;
+  border-radius:8px; background:rgba(0,0,0,0.4); color:white; font-size:16px;
+}
+button {
+  width:100%; padding:14px; border:none; border-radius:8px; font-weight:bold;
+  font-size:16px; cursor:pointer; margin:4px 0;
+}
+.btn-oro { background:#FFD700; color:#000; }
+.btn-verde { background:#2ecc71; color:white; }
+.btn-morado { background:#9b59b6; color:white; }
+.btn-gris { background:transparent; color:#aaa; text-decoration:underline; }
+
+/* JUEGO */
+.barra { height:14px; background:#2c3e50; border-radius:7px; margin:6px 0; }
+.barra-vida { height:100%; background:#e74c3c; border-radius:7px; transition:0.3s; }
+.barra-exp { height:100%; background:#9b59b6; border-radius:7px; transition:0.3s; }
+.fila { display:flex; justify-content:space-between; padding:4px 0; }
+.grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; text-align:center; margin:10px 0; }
+.nav {
+  position:fixed; bottom:0; left:0; right:0; background:#000;
+  display:flex; justify-content:space-around; padding:8px; border-top:2px solid #FFD700;
+}
+.nav button { width:auto; padding:6px; font-size:12px; background:transparent; color:#888; }
+.nav button.activo { color:#FFD700; }
+.mision, .item { padding:10px; margin:8px 0; background:rgba(0,0,0,0.3); border-left:3px solid; border-radius:4px; }
+.mision { border-color:#2ecc71; }
+.item { border-color:#FFD700; }
+.btn-chico { width:auto; padding:8px 12px; font-size:14px; }
+.mensaje { position:fixed; top:10px; left:50%; transform:translateX(-50%) translateY(-100px); background:#2c3e50; color:#FFD700; padding:12px 20px; border-radius:8px; border:2px solid #FFD700; font-weight:bold; transition:0.3s; z-index:100; }
+.mensaje.activo { transform:translateX(-50%) translateY(0); }
+.enemigo { text-align:center; padding:15px; }
+.enemigo span { font-size:40px; }
+</style>
+</head>
+<body>
+
+<div id="msg" class="mensaje"></div>
+
+<!-- PANTALLA DE INICIO -->
+<div id="p-login">
+  <div class="login-box">
+    <h1>⚔️ Reino de la Leyenda</h1>
+    <div class="tarjeta">
+      <div id="form-ingreso">
+        <input type="text" id="usuario" placeholder="Tu nombre de héroe">
+        <input type="password" id="clave" placeholder="Tu contraseña">
+        <button class="btn-oro" onclick="entrar()">Entrar ⚔️</button>
+        <button class="btn-gris" onclick="cambiarFormulario()">¿No tienes cuenta? Crear una</button>
+      </div>
+      <div id="form-registro" class="oculto">
+        <input type="text" id="nuevoUsuario" placeholder="Elige tu nombre">
+        <input type="password" id="nuevaClave" placeholder="Crea tu contraseña">
+        <button class="btn-verde" onclick="registrar()">Crear cuenta ✅</button>
+        <button class="btn-gris" onclick="cambiarFormulario()">¿Ya tienes cuenta? Entrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PANTALLA PRINCIPAL -->
+<div id="p-juego" class="oculto">
+  <h1>Bienvenido, <span id="nombre"></span></h1>
+  
+  <div class="tarjeta">
+    <p><strong>Nivel <span id="nivel">1</span></strong></p>
+    <div class="fila"><span>❤️ Vida</span><span id="vidaTexto">100/100</span></div>
+    <div class="barra"><div id="vidaBarra" class="barra-vida" style="width:100%"></div></div>
+    
+    <div class="fila" style="margin-top:10px"><span>⭐ Exp</span><span id="expTexto">0/100</span></div>
+    <div class="barra"><div id="expBarra" class="barra-exp" style="width:0%"></div></div>
+    
+    <div class="grid">
+      <div><p>⚔️ Ataque</p><p id="ataque">10</p></div>
+      <div><p>🛡️ Defensa</p><p id="defensa">5</p></div>
+      <div><p>💰 Oro</p><p id="oro">50</p></div>
+    </div>
+  </div>
+  
+  <div class="tarjeta">
+    <h3>📜 Misiones</h3>
+    <div id="listaMisiones"></div>
+  </div>
+  
+  <button class="btn-gris" onclick="salir()">Cerrar sesión 🚪</button>
+  <p style="text-align:center; color:#666; margin-top:10px; font-size:12px;">Versión 1.3</p>
+</div>
+
+<!-- PANTALLA AVENTURA -->
+<div id="p-aventura" class="oculto">
+  <h1>🗺️ Aventura</h1>
+  <div id="elegirLugar" class="tarjeta">
+    <h3>Elige dónde ir</h3>
+    <button class="btn-verde" onclick="iniciarCombate('bosque')" style="margin:6px 0;">🌲 Bosque</button>
+    <button class="btn-morado" onclick="iniciarCombate('montaña')" style="margin:6px 0;">⛰️ Montaña</button>
+    <button style="background:#e74c3c; color:white;" onclick="iniciarCombate('mazmorra')">🔥 Mazmorra</button>
+  </div>
+  
+  <div id="combate" class="oculto">
+    <div class="tarjeta enemigo">
+      <span id="enemigoImg"></span>
+      <h3 id="enemigoNombre"></h3>
+      <div class="fila"><span>❤️ Vida</span><span id="enemigoVidaTexto"></span></div>
+      <div class="barra"><div id="enemigoVidaBarra" class="barra-vida"></div></div>
+    </div>
+    <p id="textoCombate" style="text-align:center; margin:10px 0;"></p>
+    <div style="display:flex; gap:8px;">
+      <button style="background:#e74c3c; color:white; flex:1;" onclick="atacar()">⚔️ Atacar</button>
+      <button class="btn-verde" style="flex:1;" onclick="defender()">🛡️ Defender</button>
+    </div>
+    <button onclick="escapar()" style="background:#34495e; color:white; margin-top:8px;">🏃 Huir</button>
+  </div>
+</div>
+
+<!-- PANTALLA TIENDA -->
+<div id="p-tienda" class="oculto">
+  <h1>🏪 Tienda</h1>
+  <p style="text-align:right; font-size:18px;">💰 <span id="oroTienda">0</span></p>
+  <div id="listaTienda"></div>
+</div>
+
+<!-- PANTALLA INVENTARIO -->
+<div id="p-inventario" class="oculto">
+  <h1>🎒 Mi mochila</h1>
+  <div id="listaInventario"></div>
+</div>
+
+<!-- MENÚ DE ABAJO -->
+<div id="menuAbajo" class="nav oculto">
+  <button class="activo" onclick="cambiarPantalla('juego')">👤 Héroe</button>
+  <button onclick="cambiarPantalla('aventura')">🗺️ Aventura</button>
+  <button onclick="cambiarPantalla('tienda')">🏪 Tienda</button>
+  <button onclick="cambiarPantalla('inventario')">🎒</button>
+</div>
+
+<script>
+// DATOS
+let jugadorActivo = null;
+let datos = {};
+
+// BASE DE DATOS LOCAL
+function baseDatos() {
+  return JSON.parse(localStorage.getItem('cuentasJuego') || '{}');
+}
+function guardarBase(bd) {
+  localStorage.setItem('cuentasJuego', JSON.stringify(bd));
+}
+function guardarProgreso() {
+  if(!jugadorActivo) return;
+  const bd = baseDatos();
+  bd[jugadorActivo].datos = datos;
+  guardarBase(bd);
+}
+
+// MOSTRAR MENSAJE
+function mostrarMensaje(texto) {
+  const m = document.getElementById('msg');
+  m.textContent = texto;
+  m.classList.add('activo');
+  setTimeout(()=>m.classList.remove('activo'), 2500);
+}
+
+// CAMBIAR ENTRE LOGIN Y REGISTRO
+function cambiarFormulario() {
+  document.getElementById('form-ingreso').classList.toggle('oculto');
+  document.getElementById('form-registro').classList.toggle('oculto');
+}
+
+// CREAR CUENTA
+function registrar() {
+  const usuario = document.getElementById('nuevoUsuario').value.trim();
+  const clave = document.getElementById('nuevaClave').value.trim();
+  
+  if(!usuario || !clave) {
+    alert('Escribe tu nombre y contraseña');
+    return;
+  }
+  
+  const bd = baseDatos();
+  if(bd[usuario]) {
+    alert('Ese nombre ya existe, elige otro');
+    return;
+  }
+  
+  bd[usuario] = {
+    clave: clave,
+    datos: {
+      nivel: 1, vida: 100, vidaMax: 100, exp: 0, expMax: 100,
+      ataque: 10, defensa: 5, oro: 50,
+      inventario: [],
+      misiones: [
+        {id:1, texto:'Derrotar 3 enemigos', hecho:0, meta:3, oro:30, exp:50, completo:false},
+        {id:2, texto:'Ganar 50 de experiencia', hecho:0, meta:50, oro:20, exp:0, completo:false}
+      ]
+    }
+  };
+  
+  guardarBase(bd);
+  alert('✅ ¡Cuenta creada! Ahora entra con tus datos');
+  cambiarFormulario();
+  document.getElementById('usuario').value = usuario;
+}
+
+// ENTRAR AL JUEGO
+function entrar() {
+  const usuario = document.getElementById('usuario').value.trim();
+  const clave = document.getElementById('clave').value.trim();
+  
+  if(!usuario || !clave) {
+    alert('Escribe tu nombre y contraseña');
+    return;
+  }
+  
+  const bd = baseDatos();
+  if(!bd[usuario]) {
+    alert('No existe ningún jugador con ese nombre');
+    return;
+  }
+  if(bd[usuario].clave !== clave) {
+    alert('Contraseña incorrecta');
+    return;
+  }
+  
+  // TODO OK → ENTRAR
+  jugadorActivo = usuario;
+  datos = bd[usuario].datos;
+  
+  document.getElementById('p-login').classList.add('oculto');
+  document.getElementById('p-juego').classList.remove('oculto');
+  document.getElementById('menuAbajo').classList.remove('oculto');
+  document.getElementById('nombre').textContent = usuario;
+  
+  actualizarPantalla();
+  mostrarMensaje('¡Bienvenido, ' + usuario + '! ⚔️');
+}
+
+// CERRAR SESIÓN
+function salir() {
+  guardarProgreso();
+  jugadorActivo = null;
+  datos = {};
+  
+  document.getElementById('p-login').classList.remove('oculto');
+  document.getElementById('p-juego').classList.add('oculto');
+  document.getElementById('menuAbajo').classList.add('oculto');
+  
+  document.getElementById('usuario').value = '';
+  document.getElementById('clave').value = '';
+  document.getElementById('nuevoUsuario').value = '';
+  document.getElementById('nuevaClave').value = '';
+  
+  if(!document.getElementById('form-ingreso').classList.contains('oculto')) return;
+  cambiarFormulario();
+}
+
+// CAMBIAR PANTALLAS
+function cambiarPantalla(nombre) {
+  ['juego','aventura','tienda','inventario'].forEach(p => {
+    document.getElementById('p-'+p).classList.add('oculto');
+  });
+  document.getElementById('p-'+nombre).classList.remove('oculto');
+  
+  document.querySelectorAll('#menuAbajo button').forEach(b => b.classList.remove('activo'));
+  event.target.classList.add('activo');
+  
+  actualizarPantalla();
+}
+
+// SUBIR DE NIVEL
+function subirNivel() {
+  datos.nivel++;
+  datos.exp -= datos.expMax;
+  datos.expMax = Math.floor(datos.expMax * 1.5);
+  datos.vidaMax += 20;
+  datos.vida = datos.vidaMax;
+  datos.ataque += 2;
+  datos.defensa += 1;
+  mostrarMensaje('🎉 ¡Nivel ' + datos.nivel + '!');
+}
+
+// ACTUALIZAR TODO
+function actualizarPantalla() {
+  if(!jugadorActivo) return;
+  
+  // DATOS DEL HÉROE
+  document.getElementById('nivel').textContent = datos.nivel;
+  document.getElementById('vidaTexto').textContent = datos.vida + '/' + datos.vidaMax;
+  document.getElementById('vidaBarra').style.width = (datos.vida/datos.vidaMax*100) + '%';
+  document.getElementById('expTexto').textContent = datos.exp + '/' + datos.expMax;
+  document.getElementById('expBarra').style.width = (datos.exp/datos.expMax*100) + '%';
+  document.getElementById('ataque').textContent = datos.ataque;
+  document.getElementById('defensa').textContent = datos.defensa;
+  document.getElementById('oro').textContent = datos.oro;
+  
+  // MISIONES
+  const misDiv = document.getElementById('listaMisiones');
+  misDiv.innerHTML = '';
+  datos.misiones.forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'mision' + (m.completo ? ' oculto' : '');
+    div.innerHTML = `
+      <p><strong>${m.texto}</strong></p>
+      <p style="font-size:14px; color:#aaa;">Progreso: ${m.hecho}/${m.meta}</p>
+      ${!m.completo && m.hecho >= m.meta ? 
+        `<button class="btn-verde btn-chico" onclick="cobrarRecompensa(${m.id})">✅ Cobrar</button>` : ''}
+    `;
+    misDiv.appendChild(div);
+  });
+  
+  // TIENDA
+  const articulos = [
+    {id:'espada', nombre:'Espada', emoji:'⚔️', precio:40, ataque:3},
+    {id:'escudo', nombre:'Escudo', emoji:'🛡️', precio:35, defensa:2},
+    {id:'pocion', nombre:'Poción', emoji:'🧪', precio:25, vida:30},
+    {id:'armadura', nombre:'Armadura', emoji:'👕', precio:60, defensa:4},
+    {id:'acero', nombre:'Espada de Acero', emoji:'🗡️', precio:100, ataque:6}
+  ];
+  
+  document.getElementById('oroTienda').textContent = datos.oro;
+  const tiendaDiv = document.getElementById('listaTienda');
+  tiendaDiv.innerHTML = '';
+  
+  articulos.forEach(item => {
+    const comprado = datos.inventario.some(x => x.id === item.id);
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.innerHTML = `
+      <p><strong>${item.emoji} ${item.nombre}</strong></p>
+      <p style="font-size:13px; color:#aaa;">${item.ataque?`+${item.ataque} ATK`:''}${item.defensa?`+${item.defensa} DEF`:''}${item.vida?`+${item.vida} VID`:''}</p>
+      ${comprado ? '<span style="color:#2ecc71;">✅ Ya lo tienes</span>' :
+        `<button class="btn-oro btn-chico" onclick="comprarItem('${item.id}')" ${datos.oro < item.precio ? 'disabled' : ''}>💰 ${item.precio}</button>`}
+    `;
+    tiendaDiv.appendChild(div);
+  });
+  
+  // INVENTARIO
+  const invDiv = document.getElementById('listaInventario');
+  if(datos.inventario.length === 0) {
+    invDiv.innerHTML = '<p style="color:#666; text-align:center; padding:20px;">Tu mochila está vacía 🎒</p>';
+  } else {
+    invDiv.innerHTML = '';
+    datos.inventario.forEach(x => {
+      const item = articulos.find(a => a.id === x.id);
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.innerHTML = `<p><strong>${item.emoji} ${item.nombre}</strong></p>`;
+      invDiv.appendChild(div);
+    });
+  }
+  
+  guardarProgreso();
+}
+
+// COBRAR RECOMPENSA
+function cobrarRecompensa(id) {
+  const m = datos.misiones.find(x => x.id === id);
+  if(!m || m.completo || m.hecho < m.meta) return;
+  
+  m.completo = true;
+  if(m.oro) datos.oro += m.oro;
+  if(m.exp) datos.exp += m.exp;
+  
+  mostrarMensaje('🏆 ¡Misión cumplida!');
+  
+  // NUEVA MISIÓN
+  datos.misiones.push({
+    id: Date.now(),
+    texto: `Derrotar ${Math.floor(Math.random()*3+2)} enemigos`,
+    hecho: 0, meta: Math.floor(Math.random()*3+2),
+    oro: 35 + Math.floor(Math.random()*20),
+    exp: 40 + Math.floor(Math.random()*30),
+    completo: false
+  });
+  
+  while(datos.exp >= datos.expMax) subirNivel();
+  actualizarPantalla();
+}
+
+// COMPRAR
+function comprarItem(id) {
+  const lista = [
+    {id:'espada', precio:40, ataque:3},
+    {id:'escudo', precio:35, defensa:2},
+    {id:'pocion', precio:25, vida:30},
+    {id:'armadura', precio:60, defensa:4},
+    {id:'acero', precio:100, ataque:6}
+  ];
+  const item = lista.find(x => x.id === id);
+  
+  if(datos.oro < item.precio) {
+    alert('No tienes suficiente oro');
+    return;
+  }
+  if(datos.inventario.some(x => x.id === id)) {
+    alert('Ya tienes ese objeto');
+    return;
+  }
+  
+  datos.oro -= item.precio;
+  if(item.ataque) datos.ataque += item.ataque;
+  if(item.defensa) datos.defensa += item.defensa;
+  if(item.vida) datos.vida = Math.min(datos.vidaMax, datos.vida + item.vida);
+  
+  datos.inventario.push({id:id});
+  mostrarMensaje('🛒 Comprado');
+  actualizarPantalla();
+}
+
+// COMBATE
+const enemigos = {
+  bosque: [
+    {nombre:'Lobo', emoji:'🐺', vida:40, ataque:8, exp:15, oro:10},
+    {nombre:'Bandido', emoji:'🗡️', vida:50, ataque:10, exp:20, oro:15},
+    {nombre:'Araña', emoji:'🕷️', vida:35, ataque:9, exp:18, oro:12}
+  ],
+  montaña: [
+    {nombre:'Oso', emoji:'🐻‍❄️', vida:70, ataque:14, exp:35, oro:25},
+    {nombre:'Gólem', emoji:'🗿', vida:90, ataque:12, exp:40, oro:30}
+  ],
+  mazmorra: [
+    {nombre:'Esqueleto', emoji:'💀', vida:60, ataque:15, exp:30, oro:22},
+    {nombre:'Dragón', emoji:'🐉', vida:150, ataque:25, exp:100, oro:80}
+  ]
+};
+
+let combateActivo = false;
+let enemigoActual = null;
+let lugar = '';
+
+function iniciarCombate(zona) {
+  lugar = zona;
+  const lista = enemigos[zona];
+  const elegido = lista[Math.floor(Math.random()*lista.length)];
+  enemigoActual = {...elegido, vidaActual: elegido.vida};
+  combateActivo = true;
+  
+  document.getElementById('elegirLugar').classList.add('oculto');
+  document.getElementById('combate').classList.remove('oculto');
+  
+  document.getElementById('enemigoImg').textContent = enemigoActual.emoji;
+  document.getElementById('enemigoNombre').textContent = enemigoActual.nombre;
+  document.getElementById('enemigoVidaTexto').textContent = enemigoActual.vidaActual + '/' + enemigoActual.vida;
+  document.getElementById('enemigoVidaBarra').style.width = '100%';
+  document.getElementById('textoCombate').textContent = '¡Apareció un ' + enemigoActual.nombre + '!';
+}
+
+function atacar() {
+  if(!combateActivo) return;
+  
+  const danoTuyo = Math.max(1, datos.ataque - Math.floor(Math.random()*3));
+  enemigoActual.vidaActual -= danoTuyo;
+  document.getElementById('textoCombate').innerHTML = 'Le hiciste ' + danoTuyo + ' de daño ⚔️';
+  
+  if(enemigoActual.vidaActual <= 0) {
+    victoria();
+    return;
+  }
+  
+    // ATAQUE DEL ENEMIGO
+  setTimeout(() => {
+    const danoSu = Math.max(1, enemigoActual.ataque - datos.defensa - Math.floor(Math.random()*2));
+    datos.vida -= danoSu;
+    document.getElementById('textoCombate').innerHTML += '<br>Te hicieron ' + danoSu + ' de daño 💥';
+    
+    if(datos.vida <= 0) {
+      derrota();
+      return;
+    }
+    
+    document.getElementById('enemigoVidaTexto').textContent = enemigoActual.vidaActual + '/' + enemigoActual.vida;
+    document.getElementById('enemigoVidaBarra').style.width = (enemigoActual.vidaActual/enemigoActual.vida*100) + '%';
+    actualizarPantalla();
+  }, 600);
+  
+  document.getElementById('enemigoVidaTexto').textContent = enemigoActual.vidaActual + '/' + enemigoActual.vida;
+  document.getElementById('enemigoVidaBarra').style.width = (enemigoActual.vidaActual/enemigoActual.vida*100) + '%';
+}
+
+function defender() {
+  if(!combateActivo) return;
+  const dano = Math.max(0, Math.floor((enemigoActual.ataque - datos.defensa*2)/2));
+  datos.vida -= dano;
+  document.getElementById('textoCombate').innerHTML = 'Te defendiste! Solo ' + dano + ' de daño 🛡️';
+  
+  if(datos.vida <= 0) {
+    derrota();
+    return;
+  }
+  actualizarPantalla();
+}
+
+function victoria() {
+  combateActivo = false;
+  datos.exp += enemigoActual.exp;
+  datos.oro += enemigoActual.oro;
+  
+  // AVANZAR MISIÓN
+  datos.misiones.forEach(m => {
+    if(m.completo) return;
+    if(lugar === 'bosque' && m.texto.includes('Derrotar')) m.hecho++;
+    if(m.texto.includes('experiencia')) m.hecho = datos.exp;
+  });
+  
+  mostrarMensaje('🏆 ¡Ganaste! +' + enemigoActual.exp + ' exp +' + enemigoActual.oro + ' oro');
+  
+  while(datos.exp >= datos.expMax) subirNivel();
+  
+  setTimeout(() => {
+    document.getElementById('elegirLugar').classList.remove('oculto');
+    document.getElementById('combate').classList.add('oculto');
+  }, 1500);
+  
+  actualizarPantalla();
+}
+
+function derrota() {
+  combateActivo = false;
+  datos.vida = Math.floor(datos.vidaMax / 2);
+  mostrarMensaje('💀 Fuiste derrotado... Te recuperas');
+  
+  setTimeout(() => {
+    document.getElementById('elegirLugar').classList.remove('oculto');
+    document.getElementById('combate').classList.add('oculto');
+  }, 1500);
+  
+  actualizarPantalla();
+}
+
+function escapar() {
+  if(Math.random() > 0.3) {
+    combateActivo = false;
+    mostrarMensaje('🏃 Escapaste bien');
+    document.getElementById('elegirLugar').classList.remove('oculto');
+    document.getElementById('combate').classList.add('oculto');
+  } else {
+    document.getElementById('textoCombate').textContent = '¡No pudiste escapar!';
+  }
+}
+</script>
+</body>
+</html>
